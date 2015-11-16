@@ -5,6 +5,7 @@ import sys
 import argparse
 from operator import itemgetter, attrgetter
 from collections import defaultdict
+from pprint import pprint
 from keystoneclient import session
 from keystoneclient.auth.identity import v2
 from keystoneclient.v2_0 import client as ksclient
@@ -29,11 +30,7 @@ def get_args():
     parser.add_argument('--hypervisor', type=str, help='FQDN of hypervisor')
     parser.add_argument('--tenant', type=str, help='Tenant ID')
     parser.add_argument('--all', action='store_true')
-    args = parser.parse_args()
-    hypervisor = args.hypervisor
-    tenant = args.tenant
-    allinstances = args.all
-    return hypervisor, tenant, allinstances
+    return parser.parse_args()
 
 def get_tenants():
     tenants = {}
@@ -47,7 +44,7 @@ def get_instances():
     for server in nova.servers.list(search_opts={'all_tenants': 1}):
         instances[server.id].append(server.tenant_id)
         instances[server.id].append(tenants.get(server.tenant_id))
-        instances[server.id].append(getattr(server, 'OS-EXT-SRV-ATTR:hypervisor_hostname'))
+        instances[server.id].append(getattr(server, 'OS-EXT-SRV-ATTR:hypervisor_hostname').split('.')[0])
     return instances
 
 def get_tenant_instances(tenantid):
@@ -67,23 +64,22 @@ def get_hypervisor_instances(hypervisor):
     return hypervisorinstances
 
 if __name__ == '__main__':
-    hypervisor, tenant, allinstances = get_args()
-    if hypervisor:
-        hypervisorinstances = get_hypervisor_instances(hypervisor)
-        print len(hypervisorinstances), 'instance(s) running on hypervisor:', hypervisor
+    args = get_args()
+    if args.hypervisor:
+        hypervisorinstances = get_hypervisor_instances(args.hypervisor)
+        print len(hypervisorinstances), 'instance(s) running on hypervisor:', args.hypervisor
         print '\n'.join(map(str, hypervisorinstances))
-    if tenant:
-        tenantinstances = get_tenant_instances(tenant)
-        print len(tenantinstances), 'instance(s) owned by tenant ID:', tenant
+    if args.tenant:
+        tenantinstances = get_tenant_instances(args.tenant)
+        print len(tenantinstances), 'instance(s) owned by tenant ID:', args.tenant
         print '\n'.join(map(str, tenantinstances))
-    if allinstances:
+    if args.all:
         instances = get_instances()
-        columns = { 'Instance UUID', 'Project UUID', 'Project Name', 'Hypervisor' }
+        col_width = 0
         for k, m in instances.iteritems():
-            col_width = max(len(v) for v in m)
-        for v in columns:
-           print v.ljust(col_width),
-        print
+            maxcol = max(len(v) for v in m)
+            if maxcol > col_width:
+                col_width = maxcol
         for instance in instances:
             print instance,
             for m in instances[instance]:
