@@ -26,10 +26,10 @@ sess = session.Session(auth=auth)
 nova = nclient.Client(2, session=sess)
 
 def get_args():
-    parser = argparse.ArgumentParser(description='Instance information')
-    parser.add_argument('--hypervisor', type=str, help='FQDN of hypervisor')
-    parser.add_argument('--tenant', type=str, help='Tenant ID')
-    parser.add_argument('--all', action='store_true')
+    parser = argparse.ArgumentParser(description='OpenStack Nova instance information')
+    parser.add_argument('--hypervisor', type=str, help='List instances on a given hypervisor')
+    parser.add_argument('--tenant', type=str, help='List instances belonging to a given tenant ID')
+    parser.add_argument('--all', action='store_true', help='List all instances along with project ID, name, and hypervisor')
     return parser.parse_args()
 
 def get_tenants():
