@@ -69,13 +69,23 @@ def get_hypervisor_instances(hypervisor):
 if __name__ == '__main__':
     hypervisor, tenant, allinstances = get_args()
     if hypervisor:
-        print len(hypervisor), 'instance(s) running on hypervisor:', hypervisor
-        print '\n'.join(map(str, get_hypervisor_instances(hypervisor)))
+        hypervisorinstances = get_hypervisor_instances(hypervisor)
+        print len(hypervisorinstances), 'instance(s) running on hypervisor:', hypervisor
+        print '\n'.join(map(str, hypervisorinstances))
     if tenant:
-        print len(tenant), 'instance(s) owned by tenant ID:', tenant
-        print '\n'.join(map(str, get_tenant_instances(tenant)))
+        tenantinstances = get_tenant_instances(tenant)
+        print len(tenantinstances), 'instance(s) owned by tenant ID:', tenant
+        print '\n'.join(map(str, tenantinstances))
     if allinstances:
         instances = get_instances()
-        print 'UID', '|', 'Tenant UID', '|', 'Project', '|', 'Hypervisor'
+        columns = { 'Instance UUID', 'Project UUID', 'Project Name', 'Hypervisor' }
+        for k, m in instances.iteritems():
+            col_width = max(len(v) for v in m)
+        for v in columns:
+           print v.ljust(col_width),
+        print
         for instance in instances:
-            print instance, '|', ' | '.join(map(str, instances[instance]))
+            print instance,
+            for m in instances[instance]:
+                print m.ljust(col_width),
+            print '\n',
