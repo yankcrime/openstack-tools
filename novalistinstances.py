@@ -3,9 +3,9 @@
 import os
 import sys
 import argparse
+import prettytable
 from operator import itemgetter, attrgetter
 from collections import defaultdict
-from pprint import pprint
 from keystoneclient import session
 from keystoneclient.auth.identity import v2
 from keystoneclient.v2_0 import client as ksclient
@@ -74,14 +74,10 @@ if __name__ == '__main__':
         print len(tenantinstances), 'instance(s) owned by tenant ID:', args.tenant
         print '\n'.join(map(str, tenantinstances))
     if args.all:
+        fields = ['Instance ID', 'Tenant ID', 'Project ID', 'Hypervisor']
+        pt = prettytable.PrettyTable(fields, caching=False)
+        pt.align = 'l'
         instances = get_instances()
-        col_width = 0
-        for k, m in instances.iteritems():
-            maxcol = max(len(v) for v in m)
-            if maxcol > col_width:
-                col_width = maxcol
-        for instance in instances:
-            print instance,
-            for m in instances[instance]:
-                print m.ljust(col_width),
-            print '\n',
+        for k, v in instances.items():
+            pt.add_row([k, v[0], v[1], v[2]])
+        print pt
