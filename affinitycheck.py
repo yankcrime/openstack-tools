@@ -32,41 +32,48 @@ def get_args():
     return parser.parse_args()
 
 def get_server(serverid):
-    return nova.servers.find(id=serverid)
+    return nova.servers.get(serverid)
 
 def get_group_members(groupid):
     server_group = nova.server_groups.get(groupid)
     return server_group.members
 
 def print_group_members(server_group_id):
-    fields = ['Instance', 'Instance ID', 'Hypervisor']
+    fields = ['Instance ID', 'Instance', 'Hypervisor']
     pt = prettytable.PrettyTable(fields, caching=False)
     pt.align = 'l'
     for server in get_group_members(server_group_id):
         instance = get_server(server)
         hypervisor = getattr(instance, 'OS-EXT-SRV-ATTR:hypervisor_hostname'.split('.')[0])
-        pt.add_row([instance.name, instance.id, hypervisor])
+        pt.add_row([instance.id, instance.name, hypervisor])
     print pt
 
-def find_group_duplicates(server_group_id):
+def print_group_duplicates(server_group_id):
     hypervisors = []
-    instances = get_group_members(server_group_id)
-    for instance in instances:
-        instance = get_server(instance)
-        hypervisors.append(getattr(instance, 'OS-EXT-SRV-ATTR:hypervisor_hostname'))
+    instances = defaultdict(list)
+    for instance in get_group_members(server_group_id):
+        cur = get_server(instance)
+        instances[instance].append(cur.name)
+        instances[instance].append(getattr(cur, 'OS-EXT-SRV-ATTR:hypervisor_hostname'))
+    for instance_id, [instance_name, hypervisor] in instances.items():
+        hypervisors.append(hypervisor)
     dupes = [k for k, v in Counter(hypervisors).items() if v > 1]
-    return dupes
+    if dupes:
+        print "Anti-affinity rules violated in Server Group", server_group_id, ":"
+        fields = ['Instance ID', 'Instance', 'Hypervisor']
+        pt = prettytable.PrettyTable(fields, caching=False)
+        pt.align = 'l'
+        for instance_id, [instance_name, hypervisor] in instances.items():
+            if hypervisor in dupes:
+                pt.add_row([instance_id, instance_name, hypervisor])
+        print pt
+    else:
+        print "No anti-affinity rules violated for Server Group", server_group_id, "."
 
 if __name__ == '__main__':
     args = get_args()
     group = sys.argv[2]
     if args.check:
-        dupes = find_group_duplicates(group)
-        if dupes:
-            print "Affinity-rule for", group, "violated."
-            print "Hypervisors: ",
-            print ', '.join(dupes)
-        else:
-            print "No rules violated in server group", group
+        print_group_duplicates(group)
     if args.list:
-        print print_group_members(group)
+        print_group_members(group)
