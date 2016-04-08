@@ -55,21 +55,21 @@ def print_group_duplicates(server_group_id):
     hypervisors = []
     instances = defaultdict(list)
     for instance in get_group_members(server_group_id):
-        cur = get_server(instance)
-        instances[instance].append(cur.name)
-        instances[instance].append(getattr(cur, 'OS-EXT-SRV-ATTR:hypervisor_hostname'))
-    for instance_id, [instance_name, hypervisor] in instances.items():
-        hypervisors.append(hypervisor)
+        i = get_server(instance)
+        h = getattr(i, 'OS-EXT-SRV-ATTR:hypervisor_hostname')
+        instances[instance].append(i.name)
+        instances[instance].append(h)
+        hypervisors.append(h)
     dupes = [k for k, v in Counter(hypervisors).items() if v > 1]
     if dupes:
-        print "Anti-affinity rules violated in Server Group", server_group_id, ":"
+        print "Anti-affinity rules violated in Server Group:", server_group_id
         table = create_table(['Instance ID', 'Instance', 'Hypervisor'])
         for instance_id, [instance_name, hypervisor] in instances.items():
             if hypervisor in dupes:
                 table.add_row([instance_id, instance_name, hypervisor])
         print table
     else:
-        print "No anti-affinity rules violated for Server Group", server_group_id, "."
+        print "No anti-affinity rules violated for Server Group:", server_group_id
 
 if __name__ == '__main__':
     args = get_args()
