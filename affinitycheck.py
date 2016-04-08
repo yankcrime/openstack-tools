@@ -38,15 +38,18 @@ def get_group_members(groupid):
     server_group = nova.server_groups.get(groupid)
     return server_group.members
 
-def print_group_members(server_group_id):
-    fields = ['Instance ID', 'Instance', 'Hypervisor']
+def create_table(fields):
     pt = prettytable.PrettyTable(fields, caching=False)
     pt.align = 'l'
+    return pt
+
+def print_group_members(server_group_id):
+    table = create_table(['Instance ID', 'Instance', 'Hypervisor'])
     for server in get_group_members(server_group_id):
         instance = get_server(server)
         hypervisor = getattr(instance, 'OS-EXT-SRV-ATTR:hypervisor_hostname'.split('.')[0])
-        pt.add_row([instance.id, instance.name, hypervisor])
-    print pt
+        table.add_row([instance.id, instance.name, hypervisor])
+    print table
 
 def print_group_duplicates(server_group_id):
     hypervisors = []
@@ -60,13 +63,11 @@ def print_group_duplicates(server_group_id):
     dupes = [k for k, v in Counter(hypervisors).items() if v > 1]
     if dupes:
         print "Anti-affinity rules violated in Server Group", server_group_id, ":"
-        fields = ['Instance ID', 'Instance', 'Hypervisor']
-        pt = prettytable.PrettyTable(fields, caching=False)
-        pt.align = 'l'
+        table = create_table(['Instance ID', 'Instance', 'Hypervisor'])
         for instance_id, [instance_name, hypervisor] in instances.items():
             if hypervisor in dupes:
-                pt.add_row([instance_id, instance_name, hypervisor])
-        print pt
+                table.add_row([instance_id, instance_name, hypervisor])
+        print table
     else:
         print "No anti-affinity rules violated for Server Group", server_group_id, "."
 
