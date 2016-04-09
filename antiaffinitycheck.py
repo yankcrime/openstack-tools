@@ -22,9 +22,9 @@ def get_credentials():
 
 def get_args():
     """ Get commandline arguments """
-    parser = argparse.ArgumentParser(description="Affinity rule checker")
-    parser.add_argument('--check', type=str)
-    parser.add_argument('--list', type=str)
+    parser = argparse.ArgumentParser(description='Nova Server Group anti-affinity rule checker')
+    parser.add_argument('--check', type=str, help='Validate the specified Server Group')
+    parser.add_argument('--list', type=str, help='List instances and their hypervisors for a given Server Group')
     return parser.parse_args()
 
 def get_server(serverid):
