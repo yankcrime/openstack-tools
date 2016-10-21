@@ -2,34 +2,37 @@
 
 import os
 import sys
-import keystoneclient.v2_0.client as ksclient
-import neutronclient.v2_0.client as nclient
+
+from keystoneauth1.identity import v3
+from keystoneauth1 import session
+from keystoneclient.v3 import client
+import neutronclient.neutron.client
+
+auth = v3.Password(auth_url=os.environ['OS_AUTH_URL'],
+                   username=os.environ['OS_USERNAME'],
+                   password=os.environ['OS_PASSWORD'],
+                   project_name=os.environ['OS_PROJECT_NAME'],
+                   user_domain_id=os.environ['OS_USER_DOMAIN_NAME'],
+                   project_domain_name=os.environ['OS_PROJECT_DOMAIN_NAME'])
+
+session = session.Session(auth=auth)
+
+keystone = client.Client(session=session)
+neutron = neutronclient.neutron.client.Client('2.0', session=session)
 
 def usage():
     print "listorphans.py <object> where object is one or more of",
     print "'networks', 'routers', 'subnets', 'floatingips' or 'all'"
 
-def get_credentials():
-    d = {}
-    d['username'] = os.environ['OS_USERNAME']
-    d['password'] = os.environ['OS_PASSWORD']
-    d['auth_url'] = os.environ['OS_AUTH_URL']
-    d['tenant_name'] = os.environ['OS_TENANT_NAME']
-    return d
-
-credentials = get_credentials()
-neutron = nclient.Client(**credentials)
-keystone = ksclient.Client(**credentials)
-
-def get_tenantids():
-    return [tenant.id for tenant in keystone.tenants.list()]
+def get_projectids():
+    return [project.id for project in keystone.projects.list()]
 
 def get_orphaned_neutron_objects(object):
-    tenantids = get_tenantids()
+    projectids = get_projectids()
     objects = getattr(neutron, 'list_' + object)()
     orphans = []
     for object in objects.get(object):
-        if object['tenant_id'] not in tenantids:
+        if object['tenant_id'] not in projectids:
             orphans.append(object['id'])
     return orphans
 
