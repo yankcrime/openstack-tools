@@ -4,21 +4,25 @@
 import os
 import sys
 import argparse
-from collections import defaultdict, Counter
-from keystoneclient import session
-from keystoneclient.auth.identity import v2
-from keystoneclient.v2_0 import client as ksclient
-from novaclient import client as nclient
 import prettytable
+from collections import defaultdict, Counter
 
-def get_credentials():
-    """ Build dictionary of Keystone credentials from environment """
-    keystone_credentials = {}
-    keystone_credentials['auth_url'] = os.environ['OS_AUTH_URL']
-    keystone_credentials['username'] = os.environ['OS_USERNAME']
-    keystone_credentials['password'] = os.environ['OS_PASSWORD']
-    keystone_credentials['tenant_name'] = os.environ['OS_TENANT_NAME']
-    return keystone_credentials
+from keystoneauth1.identity import v3
+from keystoneauth1 import session
+from keystoneclient.v3 import client
+import novaclient.client
+
+auth = v3.Password(auth_url=os.environ['OS_AUTH_URL'],
+                   username=os.environ['OS_USERNAME'],
+                   password=os.environ['OS_PASSWORD'],
+                   project_name=os.environ['OS_PROJECT_NAME'],
+                   user_domain_id=os.environ['OS_USER_DOMAIN_NAME'],
+                   project_domain_name=os.environ['OS_PROJECT_DOMAIN_NAME'])
+
+session = session.Session(auth=auth)
+
+keystone = client.Client(session=session)
+nova = novaclient.client.Client(2, session=session)
 
 def get_args():
     """ Get commandline arguments """
@@ -84,11 +88,6 @@ def print_group_duplicates(server_group_id):
         print "Server Group", server_group_id, "empty or does not have an anti-affinity policy set."
 
 if __name__ == '__main__':
-    credentials = get_credentials()
-    keystone = ksclient.Client(**credentials)
-    auth = v2.Password(**credentials)
-    sess = session.Session(auth=auth)
-    nova = nclient.Client(2, session=sess)
     args = get_args()
     group = sys.argv[2]
     if args.check:
